@@ -1,0 +1,28 @@
+# Python Requirements for Space Weather Report Automation
+
+# Core dependencies
+requests>=2.31.0
+pyyaml>=6.0.1
+schedule>=1.2.0
+python-dotenv>=1.0.0
+
+# AI Provider integrations (multi-model support)
+anthropic>=0.39.0
+openai>=1.0.0
+google-generativeai>=0.8.0
+
+# Optional: Claude Agent SDK for interactive refinement
+# Requires Python 3.10+ and Claude Code CLI
+# Install CLI: npm install -g @anthropic-ai/claude-code
+claude-agent-sdk>=0.1.6
+
+# Optional: For enhanced functionality
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Optional: For PDF generation (if enabled)
+# reportlab>=4.0.0
+# weasyprint>=60.0
+
+# Optional: For email notifications (if enabled)
+# Add SMTP configuration to .env file

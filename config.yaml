@@ -1,0 +1,218 @@
+# Space Weather Report Automation Configuration
+
+# ============================================================================
+# AI Model Configuration
+# ============================================================================
+# Configure which AI models to use for report generation.
+# Supports multiple providers (Anthropic Claude, OpenAI GPT, Google Gemini).
+# API keys should be set in environment variables or .env file.
+
+models:
+  # Default model to use for report generation
+  default: "claude-sonnet-4.5"
+
+  providers:
+    # Anthropic Claude models
+    anthropic:
+      api_key_env: "ANTHROPIC_API_KEY"  # Environment variable for API key
+      models:
+        claude-sonnet-4.5:
+          model_id: "claude-sonnet-4-5-20250929"
+          max_tokens: 8192
+          description: "Fast, balanced performance - recommended for daily reports"
+          supports_vision: true
+
+        claude-opus-4.5:
+          model_id: "claude-opus-4-5-20251101"
+          max_tokens: 8192
+          description: "Most capable model - best for complex analysis"
+          supports_vision: true
+
+        claude-haiku-3.5:
+          model_id: "claude-3-5-haiku-20241022"
+          max_tokens: 8192
+          description: "Fastest and most economical - good for quick drafts"
+          supports_vision: true
+
+    # OpenAI GPT models
+    openai:
+      api_key_env: "OPENAI_API_KEY"  # Environment variable for API key
+      models:
+        gpt-5.1:
+          model_id: "gpt-5.1"
+          max_tokens: 16384
+          description: "Latest GPT-5.1 with adaptive thinking - best for complex tasks"
+          supports_vision: true
+          supports_reasoning_effort: true
+
+        gpt-5.1-instant:
+          model_id: "gpt-5.1-instant"
+          max_tokens: 16384
+          description: "GPT-5.1 Instant - fast, intelligent everyday model"
+          supports_vision: true
+
+        gpt-4o:
+          model_id: "gpt-4o"
+          max_tokens: 4096
+          description: "GPT-4o multimodal, fast and capable"
+          supports_vision: true
+
+        gpt-4o-mini:
+          model_id: "gpt-4o-mini"
+          max_tokens: 4096
+          description: "Smaller, faster, cheaper GPT-4o variant"
+          supports_vision: true
+
+        o1:
+          model_id: "o1"
+          max_tokens: 32768
+          description: "Reasoning model for complex analysis tasks"
+          supports_system_prompt: false
+          supports_vision: false
+
+        o1-mini:
+          model_id: "o1-mini"
+          max_tokens: 32768
+          description: "Smaller reasoning model, faster"
+          supports_system_prompt: false
+          supports_vision: false
+
+    # Google Gemini models
+    google:
+      api_key_env: "GOOGLE_API_KEY"  # Environment variable for API key
+      models:
+        gemini-2.5-flash:
+          model_id: "gemini-2.5-flash"
+          max_tokens: 8192
+          description: "Latest Gemini 2.5 Flash - fast and capable"
+          supports_vision: true
+
+        gemini-2.5-pro:
+          model_id: "gemini-2.5-pro"
+          max_tokens: 8192
+          description: "Gemini 2.5 Pro - best for complex tasks"
+          supports_vision: true
+
+        gemini-2.0-flash:
+          model_id: "gemini-2.0-flash"
+          max_tokens: 8192
+          description: "Gemini 2.0 Flash - fast and efficient"
+          supports_vision: true
+
+# ============================================================================
+# Data Sources
+# ============================================================================
+
+# Primary Data Sources
+primary_sources:
+  noaa_discussion: "https://services.swpc.noaa.gov/text/discussion.txt"
+  uk_met_office: "https://weather.metoffice.gov.uk/specialist-forecasts/space-weather"
+  sidc_forecast: "https://www.sidc.be/spaceweatherservices/managed/services/archive/product/meu/latest"
+
+# Alternative/Supplementary Sources (used as fallbacks or additional context)
+alternative_sources:
+  spaceweather_com: "https://www.spaceweather.com/"
+  earthsky: "https://earthsky.org/sun/sun-news-activity-solar-flare-cme-aurora-updates/"
+  spaceweatherlive: "https://www.spaceweatherlive.com/en/solar-activity.html"
+  
+# Flare Data Sources (in order of preference)
+flare_sources:
+  primary: "https://www.lmsal.com/solarsoft/last_events/"  # Often blocked
+  fallback_search: "solar flares today NOAA"
+  fallback_site: "https://www.spaceweather.com/"
+
+# Output Configuration
+output:
+  # Base directory for reports
+  base_directory: "/Users/cayoung/Documents/Obsidian/CAY-power-vault/space-weather-reports/reports"
+  
+  # Output formats to generate (true/false for each)
+  formats:
+    html: true
+    markdown: true
+    json: true
+    text: true
+    pdf: false  # Requires additional setup
+  
+  # File naming pattern: {date}_{time}_{format}.ext
+  # Available variables: {date}, {time}, {datetime}, {format}
+  filename_pattern: "space_weather_{date}_{time}"
+  
+  # Keep historical reports
+  archive: true
+  max_archive_days: 30  # Delete reports older than this
+
+# Update Schedule
+schedule:
+  # Run every N hours
+  interval_hours: 6
+  
+  # Specific times (24-hour format) - leave empty to use interval only
+  # Example: ["00:00", "06:00", "12:00", "18:00"]
+  specific_times: []
+
+# Report Settings
+report:
+  # Time window for report (hours before current time)
+  time_window_hours: 24
+
+  # Include images/charts in HTML output
+  include_images: false
+
+  # Timezone for timestamps (e.g., "UTC", "US/Eastern")
+  timezone: "UTC"
+
+# Flare Tracking Settings
+flare_tracking:
+  enabled: true
+  database_path: "flare_database.db"
+  collection_interval_hours: 4
+  retention_hours: 24
+  # Include flare summary in reports
+  include_in_reports: true
+
+# Notifications (optional)
+notifications:
+  enabled: false
+  email: ""
+  on_error_only: true
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "space_weather_automation.log"
+  max_size_mb: 10
+  backup_count: 5
+
+# Claude Agent SDK Integration (Optional - for interactive refinement)
+# Requires Python 3.10+ and Claude Code CLI
+# Install: npm install -g @anthropic-ai/claude-code
+# Install: python3.11 -m pip install claude-agent-sdk
+sdk_integration:
+  enabled: true  # Set to false to disable SDK features
+
+  # Permission mode for tool use
+  # Options: 'plan' (ask before edits), 'acceptEdits' (auto-approve edits),
+  #          'bypassPermissions' (no approval), 'default' (CLI default)
+  permission_mode: "plan"
+
+  # Allowed tools for Claude to use during refinement
+  allowed_tools:
+    - "Read"    # Read files
+    - "Write"   # Write files
+    - "Bash"    # Execute commands (e.g., sqlite3 queries)
+    - "Grep"    # Search file contents
+    - "Glob"    # Find files by pattern
+
+  # Knowledge base settings
+  knowledge_base:
+    enabled: true
+    directory: "knowledge_base"
+    save_conversation_logs: true
+    learn_from_refinements: true
+
+  # Daily workflow settings
+  workflow:
+    default_mode: "review"  # 'review', 'interactive', or 'review-only'
+    auto_find_latest: true  # Automatically find latest report
+    save_refined_suffix: "_refined"  # Suffix for refined reports
