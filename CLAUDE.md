@@ -15,6 +15,12 @@ python3 space_weather_automation.py --model gpt-5.1  # Use specific model
 python3 space_weather_automation.py --model claude-sonnet-4.5 --output-suffix anthropic
 ```
 
+### Run Schedulers
+```bash
+python3 scheduler.py          # Main report scheduler (every 6 hours)
+python3 flare_scheduler.py    # Flare collection (every 4 hours)
+```
+
 ### Flare Tracking
 ```bash
 python3 flare_tracker_simple.py  # Run standalone flare collection
@@ -30,14 +36,34 @@ python3 cme_tracker_enhanced.py  # Initialize/test CME database
 python3 migrate_flare_db.py  # Fix duplicate flares
 ```
 
+### Process Management
+```bash
+# Check running processes
+launchctl list | grep spaceweather
+ps aux | grep -E "(scheduler|space_weather)" | grep -v grep
+
+# Stop launchd service
+launchctl unload ~/Library/LaunchAgents/com.user.spaceweather.plist
+
+# Restart launchd service
+launchctl load ~/Library/LaunchAgents/com.user.spaceweather.plist
+```
+
 ## Architecture
 
 ### Main Entry Point
 - `space_weather_automation.py` - Orchestrates data collection, report generation, and file saving via `SpaceWeatherReportGenerator` class
 
+### AI Report Generator
+- `ai_report_generator.py` - `AIReportGenerator` class and `generate_reports_with_ai()` function for AI-powered report generation with comprehensive prompt engineering
+
 ### Data Trackers
 - `flare_tracker_simple.py` - `SimpleFlareTracker` class scrapes LMSAL and NOAA for solar flare data, stores in `flare_database.db` (SQLite), maintains rolling 24-hour window
 - `cme_tracker_enhanced.py` - `EnhancedCMETracker` class fetches CME data from NASA DONKI API, stores in `space_weather.db` with tables: `cmes_enhanced`, `cme_analyses`, `cme_model_runs`, `cme_spacecraft_impacts`
+
+### Schedulers
+- `scheduler.py` - Main report generation scheduler using `schedule` library, configurable via `config.yaml`
+- `flare_scheduler.py` - Independent flare collection scheduler (every 4 hours) to maintain comprehensive 24-hour database
 
 ### Multi-Model Provider System
 Located in `model_providers/`:
@@ -53,9 +79,6 @@ Models configured in `config.yaml` under `models.providers`. Default model set v
 - `config.yaml` - Data source URLs, output settings, model config, schedule settings
 - `.env` - API keys: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`
 
-### AI Report Generator
-- `ai_report_generator.py` - `AIReportGenerator` class and `generate_reports_with_ai()` function for AI-powered report generation
-
 ### Data Flow
 1. `SpaceWeatherReportGenerator.run()` calls `collect_latest_flares()` to refresh flare data
 2. `generate_report_data()` fetches from NOAA, UK Met Office, SIDC, and queries flare/CME databases
@@ -64,6 +87,22 @@ Models configured in `config.yaml` under `models.providers`. Default model set v
 
 ### Output
 Reports saved to `output.base_directory` (configurable) in formats: HTML, Markdown, JSON, text. Filename pattern: `space_weather_{date}_{time}.{ext}`
+
+### Knowledge Base
+Located in `knowledge_base/`:
+- `comprehensive_aurora_forecasting_guide.md` - Detailed aurora prediction reference
+- `science_context.md` - Space weather science background
+- `writing_guidelines.md` - Report writing style guide
+- `refinement_patterns.md` - Common report improvement patterns
+
+### Documentation
+Located in `docs/`:
+- `QUICKSTART.md` - Getting started guide
+- `PRD.md` - Product requirements document
+- `REPORT_STYLE_GUIDE.md` - Writing style specifications
+- `FLARE_TRACKING_GUIDE.md` - Flare database usage
+- `API_KEY_SETUP.md` - API key configuration
+- Various technical documentation files
 
 ## Key Classes
 
@@ -91,3 +130,5 @@ Table `cme_spacecraft_impacts`: Arrival predictions for various spacecraft
 - CME data from NASA DONKI API (no API key required for CCMC endpoint)
 - Reports auto-cleanup files older than `max_archive_days` (default 30)
 - The `ARCHIVE-original/` directory contains legacy code and is not part of the active system
+- Flare scheduler should run independently of main report scheduler to maintain fresh data
+- The `knowledge_base/` directory contains reference materials used for report quality

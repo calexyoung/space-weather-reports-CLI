@@ -47,6 +47,8 @@ env/
 
 # Log files
 *.log
+flare_collection.log
+space_weather_automation.log
 
 # OS files
 .DS_Store
