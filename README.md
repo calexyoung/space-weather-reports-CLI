@@ -238,6 +238,107 @@ space-weather-reports-CLI/
 | `cme_model_runs` | Earth arrival predictions |
 | `cme_spacecraft_impacts` | Spacecraft arrival predictions |
 
+## How It Works
+
+### Complete Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              ENTRY POINT                                     │
+│  python3 space_weather_automation.py [--model MODEL] [--output-suffix SUFFIX]│
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  1. INITIALIZATION                                                           │
+│     ├── Load config.yaml                                                    │
+│     ├── Setup logging (file + console)                                      │
+│     └── Store model/output settings                                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  2. COLLECT LATEST FLARES                                                    │
+│     └── SimpleFlareTracker.scrape_and_update()                              │
+│         ├── Scrape LMSAL for flare data                                     │
+│         ├── Scrape NOAA for additional data                                 │
+│         ├── Insert new flares into flare_database.db                        │
+│         └── Delete flares older than 24 hours                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  3. GATHER REPORT DATA                                                       │
+│                                                                              │
+│     Fetch Primary Sources (HTTP):          Query Local Databases:           │
+│     ├── NOAA SWPC discussion.txt           ├── 24h flare summary            │
+│     ├── UK Met Office forecast             ├── Detailed flare list          │
+│     ├── SIDC solar forecast                ├── CMEs from last 24h           │
+│     └── Alternative sources                └── CME arrivals (next 3 days)   │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  4. GENERATE REPORT WITH AI                                                  │
+│     └── AIReportGenerator.generate_report()                                 │
+│         ├── Build comprehensive prompt with all data                        │
+│         ├── Call AI model (Claude/GPT/Gemini via model_providers/)          │
+│         ├── Extract HTML from response                                      │
+│         ├── Append data tables (flares, CMEs)                               │
+│         └── Convert to: markdown, json, text                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  5. SAVE REPORTS                                                             │
+│     ├── Create directory: {base_dir}/{YYYY-MM}/                             │
+│     └── Write files: space_weather_{date}_{time}.{html,md,json,txt}         │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  6. CLEANUP                                                                  │
+│     └── Delete reports older than max_archive_days (default: 30)            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow Summary
+
+| Step | Method | Data Source | Output |
+|------|--------|-------------|--------|
+| 1 | `collect_latest_flares()` | LMSAL, NOAA websites | `flare_database.db` updated |
+| 2 | `fetch_noaa_discussion()` | NOAA SWPC | Discussion text |
+| 3 | `fetch_uk_met_office()` | UK Met Office | Forecast HTML |
+| 4 | `fetch_sidc_forecast()` | SIDC Belgium | Solar forecast |
+| 5 | `get_flare_summary()` | `flare_database.db` | 24h flare statistics |
+| 6 | `get_flares_for_report_period()` | `flare_database.db` | Detailed flare list |
+| 7 | `get_cmes_for_report_period()` | `space_weather.db` | CME observations |
+| 8 | `get_predicted_cme_arrivals()` | `space_weather.db` | CME arrival predictions |
+| 9 | `call_ai_for_report()` | All data above | HTML, MD, JSON, TXT reports |
+| 10 | `save_report()` | Generated reports | Files on disk |
+
+### Component Dependencies
+
+```
+space_weather_automation.py
+    │
+    ├── ai_report_generator.py ─────────► AIReportGenerator class
+    │       │
+    │       └── model_providers/ ───────► Claude, GPT, Gemini providers
+    │               ├── anthropic_provider.py
+    │               ├── openai_provider.py
+    │               └── google_provider.py
+    │
+    ├── flare_tracker_simple.py ────────► SimpleFlareTracker class
+    │       │
+    │       └── flare_database.db ──────► SQLite: flares table
+    │
+    └── cme_tracker_enhanced.py ────────► EnhancedCMETracker class
+            │
+            └── space_weather.db ───────► SQLite: cmes_enhanced, cme_analyses,
+                                                   cme_model_runs, cme_spacecraft_impacts
+```
+
 ## Report Contents
 
 Generated reports include:
